@@ -75,5 +75,6 @@ fun EntryProviderBuilder<*>.conversationDetailEntry() =
         ConversationScreen(
             uiState = uiState,
             onClickSend = viewModel::sendMessage,
+            onConversationOpened = viewModel::onConversationOpened,
         )
     }

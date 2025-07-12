@@ -1,5 +1,6 @@
 package dev.karthiksankar.chatt.ui.listing
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -104,55 +106,41 @@ fun ConversationItem(
     conversation: ConversationEntity,
     onClickConversation: (ConversationEntity) -> Unit,
 ) {
-    // TODO Highlight unread messages
-    // TODO Highlight failed messages
     val lastMessage = conversation.messages.lastOrNull()
-
-    Row(
+    val unreadCount =
+        conversation.messages.count { it.state == MessageEntity.State.UNREAD }
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClickConversation(conversation) }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(16.dp)
+            .padding(end = 8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = conversation.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = lastMessage?.let { getFormattedTime(it.timestamp) }.orEmpty(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
+            Text(
+                text = conversation.title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            MessageTime(
+                lastMessage = lastMessage,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = lastMessage?.text.orEmpty(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = when (lastMessage?.state) {
-                        MessageEntity.State.FAILED -> Color.Red
-                        else -> Color.Gray
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            MessagePreview(
+                message = lastMessage,
+                modifier = Modifier.weight(1f)
+            )
+
+            UnreadCount(unreadCount)
         }
     }
 }
@@ -167,6 +155,55 @@ private fun getFormattedTime(timestamp: Long): String {
     } else {
         SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(timestamp))
     }
+}
+
+@Composable
+fun MessagePreview(
+    message: MessageEntity?,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = message?.text.orEmpty(),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        style = MaterialTheme.typography.bodyMedium,
+        color = when (message?.state) {
+            MessageEntity.State.FAILED -> Color.Red
+            else -> Color.Gray
+        },
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun UnreadCount(count: Int) {
+    if (count > 0) {
+        Box(
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .background(Color(0xFF1976D2), shape = RoundedCornerShape(12.dp))
+                .padding(horizontal = 8.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = count.toString(),
+                color = Color.White,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+@Composable
+fun MessageTime(
+    lastMessage: MessageEntity?,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = lastMessage?.let { getFormattedTime(it.timestamp) }.orEmpty(),
+        style = MaterialTheme.typography.bodySmall,
+        color = Color.Gray,
+        modifier = modifier
+    )
 }
 
 @Composable

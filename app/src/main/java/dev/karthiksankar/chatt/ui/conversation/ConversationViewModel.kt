@@ -7,11 +7,13 @@ import dev.karthiksankar.chatt.data.ChatStorageInMemory
 import dev.karthiksankar.chatt.data.ConversationEntity
 import dev.karthiksankar.chatt.data.MessageEntity
 import dev.karthiksankar.chatt.data.WebSocketManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ConversationViewModel(val id: String) : ViewModel() {
@@ -29,8 +31,14 @@ class ConversationViewModel(val id: String) : ViewModel() {
             initialValue = null
         )
 
+    /**
+     * The [StateFlow] that emits the connection state of the WebSocket for the conversation with the given [id].
+     */
     private val isConnectionActive = WebSocketManager.getConnectionState(id)
 
+    /**
+     * The [StateFlow] that emits the UI state for the conversation screen.
+     */
     val uiState: StateFlow<ConversationUiState> =
         combine(conversation, isConnectionActive) { conversation, isConnected ->
             ConversationUiState(
@@ -45,21 +53,44 @@ class ConversationViewModel(val id: String) : ViewModel() {
             initialValue = ConversationUiState()
         )
 
-    /**
-     * Sends a message to the conversation.
-     * This is a placeholder function and should be implemented to actually send a message.
-     */
+    init {
+        viewModelScope.launch {
+            conversation.collect { conv ->
+                conv?.messages?.filter { it.state == MessageEntity.State.UNREAD }?.forEach { msg ->
+                    ChatStorageInMemory.updateMessageState(conv.id, msg.id, MessageEntity.State.SENT)
+                }
+            }
+        }
+    }
+
     fun sendMessage(message: String) {
-        val conversation = conversation.value ?: return
-        val message = MessageEntity(
-            id = UUID.randomUUID().toString(),
-            text = message.trim(),
-            timestamp = System.currentTimeMillis(),
-            state = MessageEntity.State.SENDING,
-            isOutgoing = true
-        )
-        ChatStorageInMemory.addMessage(conversation.id, message)
-        WebSocketManager.sendMessage(conversation.id, message)
+        viewModelScope.launch(Dispatchers.IO) {
+            val conversation = conversation.value ?: return@launch
+            val message = MessageEntity(
+                id = UUID.randomUUID().toString(),
+                text = message.trim(),
+                timestamp = System.currentTimeMillis(),
+                state = MessageEntity.State.SENDING,
+                isOutgoing = true
+            )
+            ChatStorageInMemory.addMessage(conversation.id, message)
+            WebSocketManager.sendMessage(conversation.id, message)
+        }
+    }
+
+    fun onConversationOpened() {
+        viewModelScope.launch(Dispatchers.Default) {
+            conversation.value?.let { conversation ->
+                conversation.messages.filter { it.state == MessageEntity.State.UNREAD }
+                    .forEach { msg ->
+                        ChatStorageInMemory.updateMessageState(
+                            conversation.id,
+                            msg.id,
+                            MessageEntity.State.SENT
+                        )
+                    }
+            }
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
