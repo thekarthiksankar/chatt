@@ -148,6 +148,7 @@ fun InputText(
                     onClick = {
                         if (messageText.isNotBlank()) {
                             onClickSend(messageText.trim())
+                            messageText = ""
                         }
                     }
                 ) {

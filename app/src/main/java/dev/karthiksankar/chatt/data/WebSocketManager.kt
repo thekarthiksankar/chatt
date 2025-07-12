@@ -1,23 +1,53 @@
 package dev.karthiksankar.chatt.data
 
 import android.util.Log
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.WebSocket
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 object WebSocketManager {
-
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    private val sockets = ConcurrentHashMap<String, WebSocket>()
+
     fun connect(channelId: String) {
-        val url = "wss://s14912.blr1.piesocket.com/v3/$channelId?api_key=KkPujCxVRnmw0Ik0rYKF7R7E54cDqQpGrJm8wbqo"
+        val url =
+            "wss://s14912.blr1.piesocket.com/v3/$channelId?api_key=KkPujCxVRnmw0Ik0rYKF7R7E54cDqQpGrJm8wbqo" // TODO Move this URL into a secure place
         val request = Request.Builder().url(url).build()
         val listener = ChatWebSocketListener(channelId)
-        client.newWebSocket(request, listener)
+        val ws = client.newWebSocket(request, listener)
+        sockets[channelId] = ws
         Log.i("Socket", url)
+    }
+
+    fun sendMessage(channelId: String, message: MessageEntity) {
+        val socket = sockets[channelId]
+
+        val rawMessage = Json.encodeToString(MessageEntity.serializer(), message)
+
+        if (socket != null) {
+            val success = socket.send(rawMessage)
+            if (success) {
+                Log.i("SocketManager", "sendMessage: $message")
+                ChatStorageInMemory.updateMessageState(
+                    channelId,
+                    message.id,
+                    MessageEntity.State.SENT
+                )
+            } else {
+                Log.i("SocketManager", "sendMessage failed: $message")
+                // TODO Fallback to local storage or retry logic
+            }
+        } else {
+            Log.i("SocketManager", "sendMessage no active sockets found: $message")
+            // TODO Fallback to local storage or retry logic
+        }
     }
 }

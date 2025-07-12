@@ -5,10 +5,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import dev.karthiksankar.chatt.data.ChatStorageInMemory
 import dev.karthiksankar.chatt.data.ConversationEntity
+import dev.karthiksankar.chatt.data.MessageEntity
+import dev.karthiksankar.chatt.data.WebSocketManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import java.util.UUID
 
 class ConversationViewModel(val id: String) : ViewModel() {
 
@@ -43,7 +46,16 @@ class ConversationViewModel(val id: String) : ViewModel() {
      * This is a placeholder function and should be implemented to actually send a message.
      */
     fun sendMessage(message: String) {
-        // TODO implement sending a message
+        val conversation = conversation.value ?: return
+        val message = MessageEntity(
+            id = UUID.randomUUID().toString(),
+            text = message.trim(),
+            timestamp = System.currentTimeMillis(),
+            state = MessageEntity.State.SENDING,
+            isOutgoing = true
+        )
+        ChatStorageInMemory.addMessage(conversation.id, message)
+        WebSocketManager.sendMessage(conversation.id, message)
     }
 
     @Suppress("UNCHECKED_CAST")
