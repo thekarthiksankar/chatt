@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.karthiksankar.chatt.data.MessageEntity
+import dev.karthiksankar.chatt.ui.components.ChattAppBarDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +72,7 @@ fun ConversationScreen(
 fun Toolbar(name: String, isConnected: Boolean) {
     CenterAlignedTopAppBar(
         title = { Text(name) },
+        colors = ChattAppBarDefaults.topAppBarColors(),
         actions = {
             Box(
                 modifier = Modifier
