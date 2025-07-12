@@ -46,7 +46,7 @@ object ChatStorageInMemory {
             id = java.util.UUID.randomUUID().toString(),
             text = text,
             timestamp = System.currentTimeMillis(),
-            state = MessageEntity.State.SENT,
+            state = MessageEntity.State.UNREAD,
             isOutgoing = false,
         )
         addMessage(channelId, message)
