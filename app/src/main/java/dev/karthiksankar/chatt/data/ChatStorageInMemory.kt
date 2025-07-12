@@ -12,7 +12,6 @@ object ChatStorageInMemory {
     fun createConversation(): ConversationEntity {
         val channelId = java.util.UUID.randomUUID().toString()
         val newConversation = ConversationEntity(
-            id = java.util.UUID.randomUUID().toString(),
             title = "Alice", // TODO Generate random name
             channelId = channelId,
             messages = emptyList()
