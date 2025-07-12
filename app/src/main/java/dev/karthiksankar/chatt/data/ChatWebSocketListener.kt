@@ -10,8 +10,8 @@ class ChatWebSocketListener(private val conversationId: String) : WebSocketListe
     override fun onOpen(webSocket: WebSocket, response: Response) {
         super.onOpen(webSocket, response)
         WebSocketManager.socketStates[conversationId]?.value = true
-        // TODO Try to resend any pending messages
         Log.i("WebSocket", "Connected to channel: $conversationId")
+        WebSocketManager.retryPendingMessages(conversationId)
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
