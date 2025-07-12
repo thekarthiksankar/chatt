@@ -13,7 +13,7 @@ object ChatStorageInMemory {
         val channelId = java.util.UUID.randomUUID().toString()
         val newConversation = ConversationEntity(
             id = java.util.UUID.randomUUID().toString(),
-            title = "Alice",
+            title = "Alice", // TODO Generate random name
             channelId = channelId,
             messages = emptyList()
         )
@@ -25,5 +25,28 @@ object ChatStorageInMemory {
         val currentList = _conversations.value.toMutableList()
         currentList.add(conversation)
         _conversations.value = currentList
+    }
+
+    private fun addMessage(channelId: String, message: MessageEntity) {
+        val currentList = _conversations.value.toMutableList()
+        val index = currentList.indexOfFirst { it.channelId == channelId }
+        if (index != -1) {
+            val conversation = currentList[index]
+            val newMessages = conversation.messages.toMutableList().apply {
+                add(message)
+            }
+            currentList[index] = conversation.copy(messages = newMessages)
+            _conversations.value = currentList
+        }
+    }
+
+    fun onNewMessage(channelId: String, text: String) {
+        val message = MessageEntity(
+            id = java.util.UUID.randomUUID().toString(),
+            text = text,
+            timestamp = System.currentTimeMillis(),
+            state = MessageEntity.State.SENT
+        )
+        addMessage(channelId, message)
     }
 }
