@@ -9,6 +9,7 @@ import dev.karthiksankar.chatt.data.MessageEntity
 import dev.karthiksankar.chatt.data.WebSocketManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.util.UUID
@@ -19,7 +20,7 @@ class ConversationViewModel(val id: String) : ViewModel() {
      * The [StateFlow] that emits the conversation with the given [id].
      * It will emit `null` if no conversation is found with the given [id].
      */
-    val conversation: StateFlow<ConversationEntity?> =
+    private val conversation: StateFlow<ConversationEntity?> =
         ChatStorageInMemory.conversations.map { conversations ->
             conversations.find { it.id == this.id }
         }.stateIn(
@@ -28,18 +29,21 @@ class ConversationViewModel(val id: String) : ViewModel() {
             initialValue = null
         )
 
-    val uiState: StateFlow<ConversationUiState> = conversation.map { conversation ->
-        ConversationUiState(
-            messages = conversation?.messages ?: emptyList(),
-            isConnected = true, // TODO: Replace with actual connection state
-            name = conversation?.title ?: "",
-            conversationId = conversation?.id ?: ""
+    private val isConnectionActive = WebSocketManager.getConnectionState(id)
+
+    val uiState: StateFlow<ConversationUiState> =
+        combine(conversation, isConnectionActive) { conversation, isConnected ->
+            ConversationUiState(
+                messages = conversation?.messages ?: emptyList(),
+                isConnected = isConnected,
+                name = conversation?.title ?: "",
+                conversationId = conversation?.id ?: ""
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ConversationUiState()
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = ConversationUiState()
-    )
 
     /**
      * Sends a message to the conversation.
