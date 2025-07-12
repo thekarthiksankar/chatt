@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 object ChatStorageInMemory {
+
+    private val NAMES = listOf("Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Henry")
     private val _conversations = MutableStateFlow<List<ConversationEntity>>(emptyList())
 
     val conversations: StateFlow<List<ConversationEntity>> = _conversations.asStateFlow()
@@ -12,7 +14,7 @@ object ChatStorageInMemory {
     fun createConversation(): ConversationEntity {
         val channelId = java.util.UUID.randomUUID().toString()
         val newConversation = ConversationEntity(
-            title = "Alice", // TODO Generate random name
+            title = NAMES.random(),
             id = channelId,
             messages = emptyList()
         )

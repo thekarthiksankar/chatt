@@ -18,7 +18,7 @@ class ConversationViewModel(val id: String) : ViewModel() {
      */
     val conversation: StateFlow<ConversationEntity?> =
         ChatStorageInMemory.conversations.map { conversations ->
-            conversations.find { it.id == id }
+            conversations.find { it.id == this.id }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
