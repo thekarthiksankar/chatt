@@ -31,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.karthiksankar.chatt.R
 import dev.karthiksankar.chatt.data.ConversationEntity
+import dev.karthiksankar.chatt.data.MessageEntity
 import dev.karthiksankar.chatt.ui.components.ChattAppBarDefaults
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -145,7 +146,10 @@ fun ConversationItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
+                    color = when (lastMessage?.state) {
+                        MessageEntity.State.FAILED -> Color.Red
+                        else -> Color.Gray
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }

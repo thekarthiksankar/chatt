@@ -20,42 +20,46 @@ object WebSocketManager {
 
     private val sockets = ConcurrentHashMap<String, WebSocket>()
     val socketStates =
-        ConcurrentHashMap<String, MutableStateFlow<Boolean>>() // Maps channelId to connection state. true if connected, false if disconnected
+        ConcurrentHashMap<String, MutableStateFlow<Boolean>>() // Maps conversationId to connection state. true if connected, false if disconnected
 
-    fun connect(channelId: String) {
-        val url = "wss://s14912.blr1.piesocket.com/v3/$channelId?api_key=${BuildConfig.PIE_API_KEY}"
+    fun connect(conversationId: String) {
+        val url =
+            "wss://s14912.blr1.piesocket.com/v3/$conversationId?api_key=${BuildConfig.PIE_API_KEY}"
         val request = Request.Builder().url(url).build()
-        val listener = ChatWebSocketListener(channelId)
+        val listener = ChatWebSocketListener(conversationId)
         val ws = client.newWebSocket(request, listener)
-        sockets[channelId] = ws
-        socketStates.getOrPut(channelId) { MutableStateFlow(false) }
+        sockets[conversationId] = ws
+        socketStates.getOrPut(conversationId) { MutableStateFlow(false) }
         Log.i("Socket", url)
     }
 
-    fun getConnectionState(channelId: String) =
-        socketStates.getOrPut(channelId) { MutableStateFlow(false) }.asStateFlow()
+    fun getConnectionState(conversationId: String) =
+        socketStates.getOrPut(conversationId) { MutableStateFlow(false) }.asStateFlow()
 
-    fun sendMessage(channelId: String, message: MessageEntity) {
-        val socket = sockets[channelId]
+    fun sendMessage(conversationId: String, message: MessageEntity) {
+        val socket = sockets[conversationId]
 
         val rawMessage = Json.encodeToString(MessageEntity.serializer(), message)
 
-        if (socket != null) {
-            val success = socket.send(rawMessage)
-            if (success) {
-                Log.i("SocketManager", "sendMessage: $message")
-                ChatStorageInMemory.updateMessageState(
-                    channelId,
-                    message.id,
-                    MessageEntity.State.SENT
-                )
-            } else {
-                Log.i("SocketManager", "sendMessage failed: $message")
-                // TODO Fallback to local storage or retry logic
-            }
+        val success = socket?.send(rawMessage) ?: false
+        if (success) {
+            Log.i("SocketManager", "sendMessage: $message")
+            ChatStorageInMemory.updateMessageState(
+                conversationId,
+                message.id,
+                MessageEntity.State.SENT
+            )
         } else {
             Log.i("SocketManager", "sendMessage no active sockets found: $message")
-            // TODO Fallback to local storage or retry logic
+            handleFailedMessage(conversationId, message)
         }
+    }
+
+    private fun handleFailedMessage(conversationId: String, message: MessageEntity) {
+        ChatStorageInMemory.updateMessageState(
+            conversationId,
+            message.id,
+            MessageEntity.State.FAILED,
+        )
     }
 }
