@@ -31,6 +31,7 @@ class ChatWebSocketListener(private val conversationId: String) : WebSocketListe
         WebSocketManager.socketStates[conversationId]?.value = false
         Log.e("WebSocket", "Error in channel $conversationId: ${t.message}")
 
+        // TODO Replace this with proper retry mechanism
         // Attempt to reconnect after a delay
         Thread.sleep(5000)
         WebSocketManager.connect(conversationId)

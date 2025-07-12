@@ -3,6 +3,9 @@ package dev.karthiksankar.chatt.ui.listing
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,11 +21,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import dev.karthiksankar.chatt.R
 import dev.karthiksankar.chatt.data.ConversationEntity
+import dev.karthiksankar.chatt.ui.components.ChattAppBarDefaults
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,10 +50,33 @@ fun ConversationListingScreen(
         topBar = { TopAppBar() },
         floatingActionButton = { ComposeFab(onClick = onClickCompose) }
     ) { innerPadding ->
-        Conversations(
-            modifier = modifier.padding(innerPadding),
-            conversations = conversations,
-            onClickConversation = onClickConversation
+
+        if (conversations.isEmpty()) {
+            WelcomePlaceholder(innerPadding)
+        } else {
+            Conversations(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                conversations = conversations,
+                onClickConversation = onClickConversation
+            )
+        }
+    }
+}
+
+@Composable
+fun WelcomePlaceholder(innerPadding: PaddingValues) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Welcome. Click the + button to start a new chat.",
+            style = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -51,37 +87,81 @@ private fun Conversations(
     conversations: List<ConversationEntity>,
     onClickConversation: (ConversationEntity) -> Unit
 ) {
-    // TODO Add fallback component for empty conversations
-    // FIXME Too much padding in between items
-    LazyColumn {
+    LazyColumn(modifier = modifier) {
         items(conversations) { conversation ->
-            Column {
-                ConversationItem(
-                    modifier = modifier,
-                    conversation = conversation,
-                    onClickConversation = onClickConversation
-                )
-                HorizontalDivider()
-            }
+            ConversationItem(
+                conversation = conversation,
+                onClickConversation = onClickConversation
+            )
+            HorizontalDivider()
         }
     }
 }
 
 @Composable
 fun ConversationItem(
-    modifier: Modifier,
     conversation: ConversationEntity,
-    onClickConversation: (ConversationEntity) -> Unit
+    onClickConversation: (ConversationEntity) -> Unit,
 ) {
-    // TODO Add message preview
     // TODO Highlight unread messages
     // TODO Highlight failed messages
-    Box(modifier.clickable { onClickConversation(conversation) }) {
-        Text(
-            text = conversation.title,
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.fillMaxWidth()
-        )
+    val lastMessage = conversation.messages.lastOrNull()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClickConversation(conversation) }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = conversation.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = lastMessage?.let { getFormattedTime(it.timestamp) }.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = lastMessage?.text.orEmpty(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+private fun getFormattedTime(timestamp: Long): String {
+    val now = Calendar.getInstance()
+    val msgTime = Calendar.getInstance().apply { timeInMillis = timestamp }
+    return if (now.get(Calendar.YEAR) == msgTime.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == msgTime.get(Calendar.DAY_OF_YEAR)
+    ) {
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(timestamp))
+    } else {
+        SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(timestamp))
     }
 }
 
@@ -105,7 +185,8 @@ fun TopAppBar(
 ) {
     CenterAlignedTopAppBar(
         modifier = modifier,
-        title = { Text(stringResource(R.string.app_name)) }
+        colors = ChattAppBarDefaults.topAppBarColors(),
+        title = { Text(stringResource(R.string.app_name)) },
     )
 }
 
