@@ -114,14 +114,14 @@ fun TopAppBar(
 fun ConversationListingScreenPreview() {
     val sampleConversations = listOf(
         ConversationEntity(
+            id = "channel-1",
             title = "Alice",
-            channelId = "channel-1",
             messages = emptyList(),
 
             ),
         ConversationEntity(
+            id = "channel-2",
             title = "Alice",
-            channelId = "channel-2",
             messages = emptyList(),
         ),
     )

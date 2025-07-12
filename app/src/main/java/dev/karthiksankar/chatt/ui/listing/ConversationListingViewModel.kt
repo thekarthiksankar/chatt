@@ -18,7 +18,7 @@ class ConversationListingViewModel : ViewModel() {
     fun onClickCompose() {
         viewModelScope.launch(Dispatchers.IO) {
             val conversation = ChatStorageInMemory.createConversation()
-            WebSocketManager.connect(conversation.channelId)
+            WebSocketManager.connect(conversation.id)
             _sideEffect.emit(ConversationListingSideEffect.OpenConversation(conversation))
         }
     }

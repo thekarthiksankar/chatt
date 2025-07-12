@@ -28,7 +28,7 @@ fun AppNavigation() {
         entryProvider = entryProvider {
             conversationListEntry(
                 onClickConversation = { conversation ->
-                    backStack.add(Destination.Conversation(conversation.channelId))
+                    backStack.add(Destination.Conversation(conversation.id))
                 }
             )
             conversationDetailEntry()
@@ -62,8 +62,12 @@ fun EntryProviderBuilder<*>.conversationListEntry(
 
 fun EntryProviderBuilder<*>.conversationDetailEntry() =
     entry<Destination.Conversation> { destination ->
-        val viewModel =
-            viewModel<ConversationViewModel>(factory = ConversationViewModel.Factory(destination.id))
-        val conversation by viewModel.conversation.collectAsState()
-        ConversationScreen(conversation = conversation)
+        val viewModel = viewModel<ConversationViewModel>(
+            factory = ConversationViewModel.Factory(destination.id)
+        )
+        val uiState by viewModel.uiState.collectAsState()
+        ConversationScreen(
+            uiState = uiState,
+            onClickSend = viewModel::sendMessage,
+        )
     }
