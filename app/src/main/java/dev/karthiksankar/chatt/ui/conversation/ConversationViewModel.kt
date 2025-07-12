@@ -54,7 +54,7 @@ class ConversationViewModel(val id: String) : ViewModel() {
         )
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             conversation.collect { conv ->
                 conv?.messages?.filter { it.state == MessageEntity.State.UNREAD }?.forEach { msg ->
                     ChatStorageInMemory.updateMessageState(conv.id, msg.id, MessageEntity.State.SENT)
