@@ -9,6 +9,7 @@ import okhttp3.Request
 import okhttp3.WebSocket
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.collections.toList
 
 object WebSocketManager {
     private val client = OkHttpClient.Builder()
@@ -20,6 +21,7 @@ object WebSocketManager {
     private val sockets = ConcurrentHashMap<String, WebSocket>()
     val socketStates =
         ConcurrentHashMap<String, MutableStateFlow<Boolean>>() // Maps conversationId to connection state. true if connected, false if disconnected
+    private val pendingMessages = ConcurrentHashMap<String, MutableList<MessageEntity>>()
 
     fun connect(conversationId: String) {
         val url =
@@ -60,5 +62,13 @@ object WebSocketManager {
             message.id,
             MessageEntity.State.FAILED,
         )
+        pendingMessages.getOrPut(conversationId) { mutableListOf() }.add(message)
+    }
+
+    fun retryPendingMessages(conversationId: String) {
+        pendingMessages[conversationId]?.toList()?.forEach { message ->
+            pendingMessages[conversationId]?.remove(message)
+            sendMessage(conversationId, message)
+        }
     }
 }
