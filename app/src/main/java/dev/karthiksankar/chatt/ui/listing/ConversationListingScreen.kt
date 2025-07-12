@@ -35,6 +35,7 @@ import dev.karthiksankar.chatt.R
 import dev.karthiksankar.chatt.data.ConversationEntity
 import dev.karthiksankar.chatt.data.MessageEntity
 import dev.karthiksankar.chatt.ui.components.ChattAppBarDefaults
+import dev.karthiksankar.chatt.ui.listing.ConversationListingUiState.ConversationItemUiState
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -43,25 +44,24 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationListingScreen(
-    modifier: Modifier = Modifier,
-    conversations: List<ConversationEntity>,
-    onClickConversation: (ConversationEntity) -> Unit = {},
+    uiState: ConversationListingUiState,
     onClickCompose: () -> Unit,
+    onClickConversation: (ConversationItemUiState) -> Unit = {},
 ) {
     Scaffold(
-        modifier = modifier,
+        modifier = Modifier,
         topBar = { TopAppBar() },
         floatingActionButton = { ComposeFab(onClick = onClickCompose) }
     ) { innerPadding ->
 
-        if (conversations.isEmpty()) {
+        if (uiState.conversations.isEmpty()) {
             WelcomePlaceholder(innerPadding)
         } else {
             Conversations(
-                modifier = modifier
+                modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                conversations = conversations,
+                uiState = uiState,
                 onClickConversation = onClickConversation
             )
         }
@@ -86,12 +86,12 @@ fun WelcomePlaceholder(innerPadding: PaddingValues) {
 
 @Composable
 private fun Conversations(
+    uiState: ConversationListingUiState,
     modifier: Modifier = Modifier,
-    conversations: List<ConversationEntity>,
-    onClickConversation: (ConversationEntity) -> Unit
+    onClickConversation: (ConversationItemUiState) -> Unit
 ) {
     LazyColumn(modifier = modifier) {
-        items(conversations) { conversation ->
+        items(uiState.conversations) { conversation ->
             ConversationItem(
                 conversation = conversation,
                 onClickConversation = onClickConversation
@@ -103,12 +103,9 @@ private fun Conversations(
 
 @Composable
 fun ConversationItem(
-    conversation: ConversationEntity,
-    onClickConversation: (ConversationEntity) -> Unit,
+    conversation: ConversationItemUiState,
+    onClickConversation: (ConversationItemUiState) -> Unit,
 ) {
-    val lastMessage = conversation.messages.lastOrNull()
-    val unreadCount =
-        conversation.messages.count { it.state == MessageEntity.State.UNREAD }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -126,7 +123,7 @@ fun ConversationItem(
                 modifier = Modifier.weight(1f)
             )
             MessageTime(
-                lastMessage = lastMessage,
+                messageTime = conversation.lastMessageTime.orEmpty(),
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
@@ -136,38 +133,28 @@ fun ConversationItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             MessagePreview(
-                message = lastMessage,
+                message = conversation.lastMessage.orEmpty(),
+                state = conversation.lastMessageState,
                 modifier = Modifier.weight(1f)
             )
 
-            UnreadCount(unreadCount)
+            UnreadCount(conversation.unreadCount)
         }
-    }
-}
-
-private fun getFormattedTime(timestamp: Long): String {
-    val now = Calendar.getInstance()
-    val msgTime = Calendar.getInstance().apply { timeInMillis = timestamp }
-    return if (now.get(Calendar.YEAR) == msgTime.get(Calendar.YEAR) &&
-        now.get(Calendar.DAY_OF_YEAR) == msgTime.get(Calendar.DAY_OF_YEAR)
-    ) {
-        SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(timestamp))
-    } else {
-        SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(timestamp))
     }
 }
 
 @Composable
 fun MessagePreview(
-    message: MessageEntity?,
+    message: String,
+    state: MessageEntity.State?,
     modifier: Modifier = Modifier
 ) {
     Text(
-        text = message?.text.orEmpty(),
+        text = message,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         style = MaterialTheme.typography.bodyMedium,
-        color = when (message?.state) {
+        color = when (state) {
             MessageEntity.State.FAILED -> Color.Red
             else -> Color.Gray
         },
@@ -195,11 +182,11 @@ private fun UnreadCount(count: Int) {
 
 @Composable
 fun MessageTime(
-    lastMessage: MessageEntity?,
+    messageTime: String,
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = lastMessage?.let { getFormattedTime(it.timestamp) }.orEmpty(),
+        text = messageTime,
         style = MaterialTheme.typography.bodySmall,
         color = Color.Gray,
         modifier = modifier
@@ -248,8 +235,20 @@ fun ConversationListingScreenPreview() {
         ),
     )
     ConversationListingScreen(
-        conversations = sampleConversations,
         onClickConversation = {},
-        onClickCompose = {}
+        onClickCompose = {},
+        uiState = ConversationListingUiState(
+            conversations = sampleConversations.map { conversation ->
+                ConversationItemUiState(
+                    id = conversation.id,
+                    title = conversation.title,
+                    lastMessage = "Hello, how are you?",
+                    lastMessageTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                        .format(Date()),
+                    lastMessageState = MessageEntity.State.SENT,
+                    unreadCount = 2
+                )
+            }
+        )
     )
 }

@@ -11,38 +11,31 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 class ConversationViewModel(val id: String) : ViewModel() {
 
-    /**
-     * The [StateFlow] that emits the conversation with the given [id].
-     * It will emit `null` if no conversation is found with the given [id].
-     */
-    private val conversation: StateFlow<ConversationEntity?> =
-        ChatStorageInMemory.conversations.map { conversations ->
-            conversations.find { it.id == this.id }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = null
-        )
+    private val _conversation = kotlinx.coroutines.flow.MutableStateFlow<ConversationEntity?>(null)
+    private val conversation: StateFlow<ConversationEntity?> = _conversation
 
     /**
      * The [StateFlow] that emits the connection state of the WebSocket for the conversation with the given [id].
      */
     private val isConnectionActive = WebSocketManager.getConnectionState(id)
 
+    private val _messages =
+        kotlinx.coroutines.flow.MutableStateFlow<List<MessageEntity>>(emptyList())
+    private val messages: StateFlow<List<MessageEntity>> = _messages
+
     /**
      * The [StateFlow] that emits the UI state for the conversation screen.
      */
     val uiState: StateFlow<ConversationUiState> =
-        combine(conversation, isConnectionActive) { conversation, isConnected ->
+        combine(conversation, isConnectionActive, messages) { conversation, isConnected, messages ->
             ConversationUiState(
-                messages = conversation?.messages ?: emptyList(),
+                messages = messages,
                 isConnected = isConnected,
                 name = conversation?.title ?: "",
                 conversationId = conversation?.id ?: ""
@@ -54,10 +47,26 @@ class ConversationViewModel(val id: String) : ViewModel() {
         )
 
     init {
+        viewModelScope.launch(Dispatchers.IO) {
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+        }
         viewModelScope.launch(Dispatchers.Default) {
+            ChatStorageInMemory.db.conversationDao.getConversationById(id).collect {
+                _conversation.value = it
+            }
+
+            ChatStorageInMemory.db.messageDao.getMessages(id).collect {
+                _messages.value = it
+            }
+
             conversation.collect { conv ->
                 conv?.messages?.filter { it.state == MessageEntity.State.UNREAD }?.forEach { msg ->
-                    ChatStorageInMemory.updateMessageState(conv.id, msg.id, MessageEntity.State.SENT)
+                    ChatStorageInMemory.updateMessageState(
+                        conv.id,
+                        msg.id,
+                        MessageEntity.State.SENT
+                    )
                 }
             }
         }
@@ -68,12 +77,13 @@ class ConversationViewModel(val id: String) : ViewModel() {
             val conversation = conversation.value ?: return@launch
             val message = MessageEntity(
                 id = UUID.randomUUID().toString(),
+                conversationId = conversation.id,
                 text = message.trim(),
                 timestamp = System.currentTimeMillis(),
                 state = MessageEntity.State.SENDING,
                 isOutgoing = true
             )
-            ChatStorageInMemory.addMessage(conversation.id, message)
+            ChatStorageInMemory.addMessage(message)
             WebSocketManager.sendMessage(conversation.id, message)
         }
     }

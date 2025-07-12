@@ -4,8 +4,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @Serializable
-data class MessageEntity(
+data class MessageEntity constructor(
     val id: String,
+    @Transient val conversationId: String = "",
     val text: String,
     val timestamp: Long = System.currentTimeMillis(),
     @Transient val state: State = State.SENDING,

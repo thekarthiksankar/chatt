@@ -13,7 +13,6 @@ import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import dev.karthiksankar.chatt.data.ConversationEntity
 import dev.karthiksankar.chatt.ui.conversation.ConversationScreen
 import dev.karthiksankar.chatt.ui.conversation.ConversationViewModel
 import dev.karthiksankar.chatt.ui.listing.ConversationListingScreen
@@ -33,8 +32,8 @@ fun AppNavigation() {
         ),
         entryProvider = entryProvider {
             conversationListEntry(
-                onClickConversation = { conversation ->
-                    backStack.add(Destination.Conversation(conversation.id))
+                onClickConversation = { conversationId ->
+                    backStack.add(Destination.Conversation(conversationId))
                 }
             )
             conversationDetailEntry()
@@ -43,25 +42,25 @@ fun AppNavigation() {
 }
 
 fun EntryProviderBuilder<*>.conversationListEntry(
-    onClickConversation: (ConversationEntity) -> Unit
+    onClickConversation: (String) -> Unit
 ) = entry<Destination.ConversationList> {
     val viewModel = viewModel<ConversationListingViewModel>()
-    val conversations by viewModel.conversations.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     val scope = rememberCoroutineScope()
     scope.launch {
         viewModel.sideEffect.collect { sideEffect ->
             when (sideEffect) {
                 is ConversationListingSideEffect.OpenConversation -> {
-                    onClickConversation(sideEffect.conversation)
+                    onClickConversation(sideEffect.conversation.id)
                 }
             }
         }
     }
 
     ConversationListingScreen(
-        conversations = conversations,
-        onClickConversation = onClickConversation,
+        uiState = uiState,
+        onClickConversation = { onClickConversation(it.id) },
         onClickCompose = viewModel::onClickCompose,
     )
 }
