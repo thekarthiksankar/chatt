@@ -28,7 +28,7 @@ object ChatStorageInMemory {
         _conversations.value = currentList
     }
 
-    private fun addMessage(channelId: String, message: MessageEntity) {
+    fun addMessage(channelId: String, message: MessageEntity) {
         val currentList = _conversations.value.toMutableList()
         val index = currentList.indexOfFirst { it.id == channelId }
         if (index != -1) {
@@ -50,5 +50,20 @@ object ChatStorageInMemory {
             isOutgoing = false,
         )
         addMessage(channelId, message)
+    }
+
+    fun updateMessageState(channelId: String, messageId: String, newState: MessageEntity.State) {
+        val currentList = _conversations.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == channelId }
+        if (index != -1) {
+            val conversation = currentList[index]
+            val messageIndex = conversation.messages.indexOfFirst { it.id == messageId }
+            if (messageIndex != -1) {
+                val newMessages = conversation.messages.toMutableList()
+                newMessages[messageIndex] = newMessages[messageIndex].copy(state = newState)
+                currentList[index] = conversation.copy(messages = newMessages)
+                _conversations.value = currentList
+            }
+        }
     }
 }
