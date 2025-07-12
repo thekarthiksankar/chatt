@@ -2,6 +2,8 @@ package dev.karthiksankar.chatt.data
 
 import android.util.Log
 import dev.karthiksankar.chatt.BuildConfig
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -17,6 +19,8 @@ object WebSocketManager {
         .build()
 
     private val sockets = ConcurrentHashMap<String, WebSocket>()
+    val socketStates =
+        ConcurrentHashMap<String, MutableStateFlow<Boolean>>() // Maps channelId to connection state. true if connected, false if disconnected
 
     fun connect(channelId: String) {
         val url = "wss://s14912.blr1.piesocket.com/v3/$channelId?api_key=${BuildConfig.PIE_API_KEY}"
@@ -24,8 +28,12 @@ object WebSocketManager {
         val listener = ChatWebSocketListener(channelId)
         val ws = client.newWebSocket(request, listener)
         sockets[channelId] = ws
+        socketStates.getOrPut(channelId) { MutableStateFlow(false) }
         Log.i("Socket", url)
     }
+
+    fun getConnectionState(channelId: String) =
+        socketStates.getOrPut(channelId) { MutableStateFlow(false) }.asStateFlow()
 
     fun sendMessage(channelId: String, message: MessageEntity) {
         val socket = sockets[channelId]
