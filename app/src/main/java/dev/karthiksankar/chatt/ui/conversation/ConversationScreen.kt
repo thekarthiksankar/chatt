@@ -1,6 +1,8 @@
 package dev.karthiksankar.chatt.ui.conversation
 
+import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,9 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import dev.karthiksankar.chatt.data.MessageEntity
+import dev.karthiksankar.chatt.data.WebSocketManager
 import dev.karthiksankar.chatt.ui.components.ChattAppBarDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +62,13 @@ fun ConversationScreen(
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { focusManager.clearFocus() })
             },
-        topBar = { Toolbar(name = uiState.name, isConnected = uiState.isConnected) },
+        topBar = {
+            Toolbar(
+                name = uiState.name,
+                conversationEndPoint = WebSocketManager.getConversationEndPoint(uiState.conversationId),
+                isConnected = uiState.isConnected
+            )
+        },
         bottomBar = { InputText(onClickSend = onClickSend) }
     ) { innerPadding ->
         Column(
@@ -80,8 +90,22 @@ fun ConversationScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Toolbar(name: String, isConnected: Boolean) {
+fun Toolbar(
+    name: String,
+    conversationEndPoint: String,
+    isConnected: Boolean
+) {
+    val context = LocalContext.current
     CenterAlignedTopAppBar(
+        modifier = Modifier.clickable {
+            val sendIntent: Intent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, conversationEndPoint)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, null)
+            context.startActivity(shareIntent)
+        },
         title = { Text(name) },
         colors = ChattAppBarDefaults.topAppBarColors(),
         actions = {

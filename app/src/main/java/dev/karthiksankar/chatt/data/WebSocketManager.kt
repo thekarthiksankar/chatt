@@ -24,9 +24,12 @@ object WebSocketManager {
         ConcurrentHashMap<String, MutableStateFlow<Boolean>>() // Maps conversationId to connection state. true if connected, false if disconnected
     private val pendingMessages = ConcurrentHashMap<String, MutableList<MessageEntity>>()
 
+    fun getConversationEndPoint(conversationId: String): String {
+        return "wss://s14912.blr1.piesocket.com/v3/$conversationId?api_key=${BuildConfig.PIE_API_KEY}"
+    }
+
     fun connect(conversationId: String) {
-        val url =
-            "wss://s14912.blr1.piesocket.com/v3/$conversationId?api_key=${BuildConfig.PIE_API_KEY}"
+        val url = getConversationEndPoint(conversationId)
         val request = Request.Builder().url(url).build()
         val listener = ChatWebSocketListener(conversationId)
         val ws = client.newWebSocket(request, listener)
