@@ -1,6 +1,7 @@
 package dev.karthiksankar.chatt.ui.conversation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import dev.karthiksankar.chatt.data.MessageEntity
 import dev.karthiksankar.chatt.ui.components.ChattAppBarDefaults
@@ -46,11 +49,15 @@ fun ConversationScreen(
     LaunchedEffect(uiState.conversationId) {
         onConversationOpened()
     }
+    val focusManager = LocalFocusManager.current
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding(),
+            .imePadding()
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { focusManager.clearFocus() })
+            },
         topBar = { Toolbar(name = uiState.name, isConnected = uiState.isConnected) },
         bottomBar = { InputText(onClickSend = onClickSend) }
     ) { innerPadding ->
