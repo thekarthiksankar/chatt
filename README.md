@@ -1,6 +1,8 @@
 # Chatt (Real-Time Chat Interface)
 > Developed a basic MVP that aligns with the outlined requirements. Given the limited timeframe, the current implementation focuses on functionality over production-readiness.
 
+## [Download APK](https://github.com/thekarthiksankar/chatt/releases/download/v0.1/app-release.apk)
+
 ## Requirements
 All key functional requirements were implemented, including:
 * Real-time messaging
